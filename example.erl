@@ -20,6 +20,7 @@ foreach/2
 
 test_match() ->
   Cases = [
+    {[], [], []},
     {[{var, a}], [1], [{bind, a, 1}]},
     {[1], [1], [1]},
     {[1], [0], {values_not_equal, 1, 0}},
@@ -60,7 +61,7 @@ safe_prepend(Item, List) ->
   case {Item, List} of
     {error, Content} -> {error, Content};
     {_, {error, Content}} -> {error, Content};
-    {_, [{error, Content}| _]} -> {error, Content};
+    {_, [{error, Content} | _]} -> {error, Content};
     {_, L} when is_list(L) -> [Item] ++ List
   end.
 
@@ -84,7 +85,7 @@ match(Template, Input, Vars) ->
       end;
     {[TemplateSubList | TemplateTail], [InputSubList | InputTail]}
       when
-        is_list(TemplateSubList) and
+      is_list(TemplateSubList) and
         is_list(InputSubList) ->
       Head = match(TemplateSubList, InputSubList, Vars),
       Tail = match(TemplateTail, InputTail, Vars),
