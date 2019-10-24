@@ -1,4 +1,4 @@
--module(example).
+-module(lesson1).
 -import(maps, [
 put/3,
 get/3
@@ -85,7 +85,7 @@ match(Template, Input, Vars) ->
       end;
     {[TemplateSubList | TemplateTail], [InputSubList | InputTail]}
       when
-      is_list(TemplateSubList) and
+        is_list(TemplateSubList) and
         is_list(InputSubList) ->
       Head = match(TemplateSubList, InputSubList, Vars),
       Tail = match(TemplateTail, InputTail, Vars),
