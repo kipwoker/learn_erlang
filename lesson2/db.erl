@@ -77,5 +77,5 @@ match(Element, Db) ->
   maps:keys(FilteredDbContent).
 
 destroy(Db) ->
-  file_manager:delete()
+  file_manager:delete(),
   ok.
