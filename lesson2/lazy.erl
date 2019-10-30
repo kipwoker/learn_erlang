@@ -42,7 +42,8 @@ test() ->
   test_lazy_map(),
   test_lazy_filter(),
   test_lazy_foldl(),
-  test_lazy_concat().
+  test_lazy_concat(),
+  test_calculate_max_subseq().
 
 test_lazy_map() ->
   log:write("test_lazy_map"),
@@ -73,13 +74,32 @@ test_lazy_concat() ->
   Expected = [1, 2, 3, 4, 5, 6],
   assert(Expected, to_list(Actual)).
 
+test_calculate_max_subseq() ->
+  assert(
+    {{sum, 197}, {list, [100, -3, 100]}},
+    calculate_max_subseq("test1.txt", 0)
+  ),
+  assert(
+    {{sum, 43}, {list, [1, 2, 3, 4, 0, -1, 4, 10, 20]}},
+    calculate_max_subseq("test2.txt", 0)
+  ),
+  assert(
+    {{sum, 10}, {list, [1, 2, 3, 4]}},
+    calculate_max_subseq("test3.txt", 0)
+  ),
+  assert(
+    {{sum, 0}, {list, []}},
+    calculate_max_subseq("test4.txt", 0)
+  ).
+
 %% tests end
 
 lazy_map(Func, LazyList) ->
   fun() ->
     case LazyList() of
       [] -> [];
-      [H | T] -> [Func(H) | lazy_map(Func, T)]
+      [H | T] ->
+        [Func(H) | lazy_map(Func, T)]
     end
   end.
 
@@ -118,27 +138,68 @@ lazy_concat(LazyList1, LazyList2) ->
 
 
 
-lazy_read_line(Device) ->
-  fun() -> {file:read_line(Device), Device} end.
+lazy_line_list(Device) ->
+  fun() ->
+    case file:read_line(Device) of
+      eof -> [];
+      {ok, Line} ->
+        {Number, _} = string:to_integer(Line),
+        [Number | lazy_line_list(Device)];
+      Other ->
+        log:write("Read line error", Other),
+        []
+    end
+  end.
 
 
 %% -2 -1  1 2 3 4  4  0  0 -10 10 20 30  0 -1
 %% -2 -3 -2 0 3 7 11 11 11   1 11 31 61 61 60
 
-%%calculate_max_subseq(Device, Acc, MinLength, Candidate) ->
-%%  ReadLine = lazy_read_line(Device),
-%%  Line = ReadLine(),
-%%  Number = string:to_integer(Line),
-%%  case Acc of
-%%    [] -> calculate_max_subseq(Device, [Number], MinLength);
-%%    [PreviousItem | _] ->
-%%      NewAcc = [{{origin, Number}, {sum, Number + PreviousItem}}] ++ Acc,
-%%      {{sum, Sum}, {list, Seq}} = Candidate,
-%%      %%todo condition
-%%      NewCandidate = {{sum, Sum + Number}, {list, Seq ++ [Number]}},
-%%      calculate_max_subseq(Device, NewAcc, MinLength, NewCandidate)
-%%  end.
-%%
-%%calculate_max_subseq(FileName, MinLength) ->
-%%  {ok, Device} = file:open(FileName, [raw]),
-%%  calculate_max_subseq(Device, [], MinLength, [], {{sum, 0}, {list, []}}).
+create_acc_item(Current, Previous) ->
+  Current + Previous.
+
+create_default_candidate() ->
+  {{sum, 0}, {list, []}}.
+
+append_to_candidate(Candidate, Number) ->
+  {{sum, CandidateSum}, {list, CandidateSeq}} = Candidate,
+  {{sum, Number + CandidateSum}, {list, CandidateSeq ++ [Number]}}.
+
+calculate_max_subseq(LazyLines, Acc, MinLength, Candidate, Max) ->
+  LL = LazyLines(),
+%%  log:write("LL", LazyLines),
+%%  log:write("Acc", Acc),
+%%  log:write("Candidate", Candidate),
+%%  log:write("Max", Max),
+%%  log:write("LL_Eval", LL),
+  case LL of
+    [] -> Max;
+    [Number | Tail] ->
+      {SumItem, PreviousSumItem} =
+        case Acc of
+          [] -> {create_acc_item(Number, 0), 0};
+          [Previous | _] -> {create_acc_item(Number, Previous), Previous}
+        end,
+      NewAcc = [SumItem | Acc],
+      {{sum, MaxSum}, _} = Max,
+      {NewCandidate, NewMax} =
+        case SumItem > PreviousSumItem of
+          true ->
+            {{sum, NewCandidateSum}, _} = NC = append_to_candidate(Candidate, Number),
+            case NewCandidateSum > MaxSum of
+              true -> {NC, NC};
+              false -> {NC, Max}
+            end;
+          false ->
+            case SumItem > 0 of
+              true -> {append_to_candidate(Candidate, Number), Max};
+              false -> {create_default_candidate(), Max}
+            end
+        end,
+      calculate_max_subseq(Tail, NewAcc, MinLength, NewCandidate, NewMax)
+  end.
+
+calculate_max_subseq(FileName, MinLength) ->
+  {ok, Device} = file:open(FileName, [raw]),
+  LazyLines = lazy_line_list(Device),
+  calculate_max_subseq(LazyLines, [], MinLength, create_default_candidate(), create_default_candidate()).
