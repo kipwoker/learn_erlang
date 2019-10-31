@@ -76,20 +76,28 @@ test_lazy_concat() ->
 
 test_calculate_max_subseq() ->
   assert(
-    {{sum, 197}, {list, [100, -3, 100]}},
+    {{sum, 197}, {seq, [100, -3, 100]}, {length, 3}},
     calculate_max_subseq("test1.txt", 0)
   ),
   assert(
-    {{sum, 43}, {list, [1, 2, 3, 4, 0, -1, 4, 10, 20]}},
+    {{sum, 43}, {seq, [1, 2, 3, 4, 0, -1, 4, 10, 20]}, {length, 9}},
     calculate_max_subseq("test2.txt", 0)
   ),
   assert(
-    {{sum, 10}, {list, [1, 2, 3, 4]}},
+    {{sum, 10}, {seq, [1, 2, 3, 4]}, {length, 4}},
     calculate_max_subseq("test3.txt", 0)
   ),
   assert(
-    {{sum, 0}, {list, []}},
+    {{sum, 0}, {seq, []}, {length, 0}},
     calculate_max_subseq("test4.txt", 0)
+  ),
+  assert(
+    {{sum, 7}, {seq, [3, 2, 1, 1]}, {length, 4}},
+    calculate_max_subseq("test5.txt", 0)
+  ),
+  assert(
+    {{sum, 6}, {seq, [1, 2, 3]}, {length, 3}},
+    calculate_max_subseq("test6.txt", 3)
   ).
 
 %% tests end
@@ -159,11 +167,11 @@ create_acc_item(Current, Previous) ->
   Current + Previous.
 
 create_default_candidate() ->
-  {{sum, 0}, {list, []}}.
+  {{sum, 0}, {seq, []}, {length, 0}}.
 
 append_to_candidate(Candidate, Number) ->
-  {{sum, CandidateSum}, {list, CandidateSeq}} = Candidate,
-  {{sum, Number + CandidateSum}, {list, CandidateSeq ++ [Number]}}.
+  {{sum, Sum}, {seq, Seq}, {length, Length}} = Candidate,
+  {{sum, Number + Sum}, {seq, Seq ++ [Number]}, {length, Length + 1}}.
 
 calculate_max_subseq(LazyLines, Acc, MinLength, Candidate, Max) ->
   LL = LazyLines(),
@@ -181,12 +189,13 @@ calculate_max_subseq(LazyLines, Acc, MinLength, Candidate, Max) ->
           [Previous | _] -> {create_acc_item(Number, Previous), Previous}
         end,
       NewAcc = [SumItem | Acc],
-      {{sum, MaxSum}, _} = Max,
+      {{sum, MaxSum}, _, _} = Max,
       {NewCandidate, NewMax} =
         case SumItem > PreviousSumItem of
           true ->
-            {{sum, NewCandidateSum}, _} = NC = append_to_candidate(Candidate, Number),
-            case NewCandidateSum > MaxSum of
+            {{sum, NewCandidateSum}, _, {length, NewCandidateLength}} = NC = append_to_candidate(Candidate, Number),
+            IsNewMax = (NewCandidateSum > MaxSum) and (NewCandidateLength >= MinLength),
+            case IsNewMax of
               true -> {NC, NC};
               false -> {NC, Max}
             end;
