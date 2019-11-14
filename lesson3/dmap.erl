@@ -1,4 +1,4 @@
--module(parallel_map).
+-module(dmap).
 
 %% API
 -export([
@@ -25,7 +25,7 @@ map(Fun, List, PartialResult, Timeout) ->
   Pid = spawn_link(fun() -> Self ! {map_result, Ref, map1(Fun, List, PartialResult, Timeout)} end),
   receive
     {map_result, Ref, Result} -> Result;
-    {'EXIT', Pid, _} = Msg -> self() ! Msg, error
+    {'EXIT', Pid, _} = Msg -> self() ! Msg, {error, exit}
   after Timeout -> exit(Pid, kill), {error, timeout}
   end.
 
