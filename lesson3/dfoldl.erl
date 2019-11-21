@@ -2,6 +2,7 @@
 
 %% API
 -export([
+  foldl/5,
   foldl2/3
 ]).
 
@@ -47,6 +48,7 @@ create_list(Fun, Acc, List, Self) ->
     [] -> {item, Acc}
   end.
 
+%% non parallel sample
 foldl2(Fun, Acc, List) ->
   case List of
     [H1, H2 | T] -> Fun(Fun(H1, H2), foldl2(Fun, Acc, T));
