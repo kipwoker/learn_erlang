@@ -1,8 +1,7 @@
 -module(lesson3).
 
 %% API
--export
-([]).
+-export([]).
 -compile(export_all).
 
 loop_worker() ->

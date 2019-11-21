@@ -10,8 +10,6 @@
 
 log(Prefix, Object) -> io:format(Prefix ++ ": ~p~n", [Object]).
 
-%%todo: сделать аналог Monitor.Enter/Exit
-
 enter(Pid, LockObj) ->
   Pid ! {lock, {self(), LockObj}},
   receive
